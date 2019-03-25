@@ -1,0 +1,40 @@
+{
+  "posts": [
+    {
+      "Title": "Unit Testing Considered Difficult",
+      "Date": "Wed, 06 Mar 2019 17:16:20 +0000",
+      "Image": "/posts/unit-tests-1/unittests.png",
+      "Tags": [
+        "Software Engineering",
+        "Testing",
+        "Unit Testing"
+      ],
+      "Summary": "Unit tests are more useful than I used to think, but only if you do them right",
+      "Post": "/posts/unit-tests-1/post.md"
+    },
+    {
+      "Title": "Testing Your Unit Tests",
+      "Date": "Fri, 08 Mar 2019 13:04:08 +0000",
+      "Image": "/posts/unit-tests-2-mutation/biohazard.png",
+      "Tags": [
+        "Software Engineering",
+        "Testing",
+        "Unit Testing",
+	"Mutation Testing"
+      ],
+      "Summary": "Who tests the unit tests?",
+      "Post": "/posts/unit-tests-2-mutation/post.md"
+    },
+    {
+      "Title": "Leaving HPE",
+      "Date": "Tue, 19 Mar 2019 15:04:00 +0000",
+      "Image": "/posts/leavingHPE/Hewlett-Packard-Enterprise-logo.png",
+      "Tags": [
+        "HPE",
+        "Career"
+      ],
+      "Summary": "Leaving is always hard to do",
+      "Post": "/posts/leavingHPE/post.md"
+    }
+  ]
+}
