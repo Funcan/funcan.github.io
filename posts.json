@@ -47,6 +47,18 @@
       ],
       "Summary": "New phone, new complaints",
       "Post": "/posts/1-week-on-a-pixel-3/post.md"
+    },
+    {
+        "Title": "Kubecon Europe 2019",
+        "Date": "Fri, 24 May 2019 15:42:00 +0200",
+        "Image": "/posts/kubecon-europe-2019/kubecon.png",
+        "Tags": [
+          "Conferences",
+          "Kubecon",
+          "Kubernetes"
+        ],
+        "Summary": "My initial thoughts and impressions from the conference",
+        "Post": "/posts/kubecon-europe-2019/post.md"
     }
   ]
 }
