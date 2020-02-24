@@ -59,6 +59,18 @@
         ],
         "Summary": "My initial thoughts and impressions from the conference",
         "Post": "/posts/kubecon-europe-2019/post.md"
+    },
+    {
+    	"Title": "Blink is back, baby",
+	"Date": "Mon, 24 Feb 2020 19:36:00 +0000",
+	"Image": "/posts/blink/blink.gif",
+	"Tags": [
+		"CSS",
+		"90s",
+		"Retro"
+	],
+	"Summary": "Recreating <blink> with CSS",
+	"Post": "/posts/blink/post.md"
     }
   ]
 }
