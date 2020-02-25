@@ -1,5 +1,6 @@
 Blink tag
 =========
+
 I can't remember why, but I found a time I actually wanted a blink tag a month
 or two ago, and for the first time ever, missed it.
 
