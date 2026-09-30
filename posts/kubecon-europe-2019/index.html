@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kubecon Europe 2019 — Funcan&#39;s Blog</title>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/syntax.css">
+<link rel="alternate" type="application/rss+xml" title="Funcan&#39;s Blog" href="https://funcan.github.io/rss.xml">
+</head>
+<body>
+<header class="site-header">
+<a class="site-title" href="/">Funcan&#39;s Blog</a>
+<nav class="site-nav"><a href="/tags/">Tags</a></nav>
+</header>
+<main>
+
+<article class="post">
+<h1>Kubecon Europe 2019</h1>
+<p class="meta">
+<time datetime="2019-05-19">19 May 2019</time>
+</p>
+
+<img class="hero" src="/posts/kubecon-europe-2019/kubecon-r480x0.png" width="480" height="495" alt="">
+<div class="post-body"><p>4 days, 8000 attendees, 103 listed sponsors, 18 lightening talks, 26 keynotes,
+something like 400 talks, 3 official parties. So what were my initial takeaway
+points from <a href="https://events.linuxfoundation.org/events/kubecon-cloudnativecon-europe-2019/">the event</a>?</p>
+<h3 id="security">Security</h3>
+<p>This was definitely a major topic. Both access control (RBAC and OPA being the
+major topics of discussion) and network security (network policies) had several
+sessions each dedicated to them. Several pen-testing and capture-the-flag
+sessions. Lots of vendors are in this space, doing container scanning and live
+system behaviour monitoring.</p>
+<p>Kubernetes started off being single tenant and with a trusted internal network,
+but projects to fix this are going from alpha to being-used-in-production in
+timescales of 12 months or less.</p>
+<h3 id="monitoring-logging-tracing-and-metrics">Monitoring, logging, tracing and metrics</h3>
+<p>There is wide acceptance that this is not trivial to roll your own solution,
+and lots of vendors are ffering to take care of a lot of it for you. I didn't
+see that much to differentiate their offerings to be honest, though I was only
+looking at sales materials and demos rather than digging deeply. If you want a
+dashboard full of graphs, there are lots of people to do it for you. If you
+need searchable logs aggregating, then the same. There are a range of options
+for tracing, from hosted to managed to install-it-yourself, all taking
+advantage of the <a href="https://opentracing.io/">opentracing</a> standard.</p>
+<h3 id="managed-services">Managed services</h3>
+<p>Standing up a production grade K8s system is definitely not for the faint
+hearted. There are a lot of moving parts, a great deal changes from release to
+release, and there are a myriad of ways of shooting yourself in the foot.</p>
+<p>There are plenty of vendors offering to take this work off your hands. All of
+the big cloud players have an offering, various traditional virtual hosting
+providers have offerings and there are as-a-service offerings that are cross-
+platform, both on prem and across various public clouds.</p>
+<p>Given how this space is maturing, it starts to become more sensible to question
+the wisdom of having an in-house K8s operations team. I'd be interested to see
+what sorts of SLA and other support levels are provided, and get off-the-record
+customer stories.</p>
+<h3 id="war-stories">War Stories</h3>
+<p>Some of the most popular sessions I saw (with queues out of the door in several
+cases) were war stories or practical best practice. I heard other people
+talking about the exact same issues we've found and solved, and there is a huge
+value to sharing this knowledge to prevent us all having to reinvent the wheel.</p>
+<h3 id="conclusion">Conclusion</h3>
+<p>This was my first big conference in a couple of years, my first in my new role
+at Groupon, and a hugely valuable experience. From meeting several of my
+international colleagues face-to-face for the first time, to catching up with
+what the various folks from the Openstack world are now up to, to getting a
+feel for what's hot and not in the world of Kubernetes, it has been a week well
+spent.</p>
+<p>I intend to write up some of my session notes, record some demos to make sure
+I understand some new things, and I'll post as much as I can to this blog over
+the coming weeks, so please feel free to come back, or find an RSS link on the
+left sidebar.</p>
+<p>Any questions, comments or other feedback, please do reach out to me via
+<a href="mailto:duncan.thomas@gmail.com">duncan.thomas@gmail.com</a>. Thanks for reading!</p>
+</div>
+<p class="byline">By Duncan Thomas &lt;duncan.thomas@gmail.com&gt;</p>
+
+<ul class="tags">
+<li><a href="/tags/kubernetes/">kubernetes</a></li><li><a href="/tags/kubecon/">kubecon</a></li><li><a href="/tags/conference/">conference</a></li><li><a href="/tags/event/">event</a></li>
+</ul>
+
+<nav class="post-nav">
+<a class="prev" rel="prev" href="/posts/1-week-on-a-pixel-3/">← 1 Week on a Pixel 3xl</a>
+<a class="latest" href="/posts/a-case-of-small-tools/">Latest</a>
+<a class="next" rel="next" href="/posts/blink/">Blink is back, baby →</a>
+</nav>
+</article>
+
+</main>
+<footer class="site-footer">
+<nav class="recent">
+<span>Recent:</span>
+<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3xl</a>
+</nav>
+</footer>
+</body>
+</html>

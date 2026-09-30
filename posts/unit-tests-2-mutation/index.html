@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mutation Testing Tests Your Tests — Funcan&#39;s Blog</title>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/syntax.css">
+<link rel="alternate" type="application/rss+xml" title="Funcan&#39;s Blog" href="https://funcan.github.io/rss.xml">
+</head>
+<body>
+<header class="site-header">
+<a class="site-title" href="/">Funcan&#39;s Blog</a>
+<nav class="site-nav"><a href="/tags/">Tags</a></nav>
+</header>
+<main>
+
+<article class="post">
+<h1>Mutation Testing Tests Your Tests</h1>
+<p class="meta">
+<time datetime="2019-03-08">8 March 2019</time>
+</p>
+
+<img class="hero" src="/posts/unit-tests-2-mutation/biohazard-r480x0.png" width="480" height="480" alt="">
+<div class="post-body"><p>How can you measure if your unit tests are any good? Are there any good metrics for unit tests? Code coverage is certainly necessary, but it is unfortunately not sufficient. It's quite possible to execute every line of code via a unit test (an exercise not entirely without value, especially with a highly dynamic language such as python where the compiler can't catch as many undefined references and similar issue as in C or Golang), but not actually be testing any of its behaviour, let alone all.</p>
+<p>I admit to having, for a long time, somebody who considered unit tests to be low value. I've since been slowly educated on this front, and I now believe good unit tests have high value. I'm still zeroing in on a comprehensive definition of 'good' (see my last post for some initial thoughts) but one thing I've felt that should exist as a tool turns out to have existed for ages once you know the name of it: <a href="https://en.wikipedia.org/wiki/Mutation_testing">mutation testing</a>.</p>
+<h4 id="what-is-mutation-testing">What is Mutation Testing?</h4>
+<p>The concept is simple: Take your code and your tests, make random syntactically valid changes to the code, and run the tests - if no test fails then there is some part of the code's behaviour that isn't covered by the tests. Tools are available to automate this process - I've been experimenting with <a href="https://github.com/zimmski/go-mutesting">go-mutesting</a> for golang, and <a href="https://github.com/boxed/mutmut">mutmut</a> for python. Both are basic but work.</p>
+<p>There's also a giant list of other mutation testing tools and libraries <a href="https://github.com/theofidry/awesome-mutation-testing">here</a> covering most languages.</p>
+<h4 id="an-example-of-what-it-catches">An example of what it catches</h4>
+<p>Given the source code mycode.py:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">something</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;key1&#34;</span><span class="p">:</span> <span class="s2">&#34;key1&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;key2&#34;</span><span class="p">:</span> <span class="s2">&#34;key2&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;key3&#34;</span><span class="p">:</span> <span class="s2">&#34;key3&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre><p>And given the test:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">unittest</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">mycode</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SomethingTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testSomethingKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">thing</span> <span class="o">=</span> <span class="n">mycode</span><span class="o">.</span><span class="n">something</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&#34;key1&#34;</span><span class="p">,</span> <span class="s2">&#34;key2&#34;</span><span class="p">,</span> <span class="s2">&#34;key3&#34;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">thing</span>
+</span></span></code></pre><p>mutmut gives us a status line of <code>⠙ 6/6  🎉 3  ⏰ 0  🤔 0  🙁 </code>&quot;</p>
+<p>This means that 6 mutations were attempted, 3 were caught and 3 were missed.  This is more clearly spelt out from the output of <code>mutmut results</code>:</p>
+<pre><code>$ mutmut results
+To apply a mutant on disk:
+    mutmut apply &lt;id&gt;
+
+To show a mutant:
+    mutmut show &lt;id&gt;
+
+
+Survived 🙁 (3)
+
+---- mycode.py (3) ----
+
+2, 4, 6
+</code></pre>
+<p>We can view each of the failing mutations via <code>mutmut show</code>:</p>
+<pre class="chroma"><code><span class="line"><span class="cl">$ mutmut show 2
+</span></span><span class="line"><span class="cl"><span class="gd">--- mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gi">+++ mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gu">@@ -1,6 +1,6 @@
+</span></span></span><span class="line"><span class="cl"> def something():
+</span></span><span class="line"><span class="cl">     return {
+</span></span><span class="line"><span class="cl"><span class="gd">-        &#34;key1&#34;: &#34;key1&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="gi">+        &#34;key1&#34;: &#34;XXkey1XX&#34;,
+</span></span></span><span class="line"><span class="cl">         &#34;key2&#34;: &#34;key2&#34;,
+</span></span><span class="line"><span class="cl">         &#34;key3&#34;: &#34;key3&#34;
+</span></span><span class="line"><span class="cl">     }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ mutmut show 4
+</span></span><span class="line"><span class="cl"><span class="gd">--- mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gi">+++ mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gu">@@ -1,7 +1,7 @@
+</span></span></span><span class="line"><span class="cl"> def something():
+</span></span><span class="line"><span class="cl">     return {
+</span></span><span class="line"><span class="cl">         &#34;key1&#34;: &#34;key1&#34;,
+</span></span><span class="line"><span class="cl"><span class="gd">-        &#34;key2&#34;: &#34;key2&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="gi">+        &#34;key2&#34;: &#34;XXkey2XX&#34;,
+</span></span></span><span class="line"><span class="cl">         &#34;key3&#34;: &#34;key3&#34;
+</span></span><span class="line"><span class="cl">     }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ mutmut show 6
+</span></span><span class="line"><span class="cl"><span class="gd">--- mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gi">+++ mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gu">@@ -2,6 +2,6 @@
+</span></span></span><span class="line"><span class="cl">     return {
+</span></span><span class="line"><span class="cl">         &#34;key1&#34;: &#34;key1&#34;,
+</span></span><span class="line"><span class="cl">         &#34;key2&#34;: &#34;key2&#34;,
+</span></span><span class="line"><span class="cl"><span class="gd">-        &#34;key3&#34;: &#34;key3&#34;
+</span></span></span><span class="line"><span class="cl"><span class="gi">+        &#34;key3&#34;: &#34;XXkey3XX&#34;
+</span></span></span><span class="line"><span class="cl">     }
+</span></span></code></pre><p>This highlights the fact that none of our return dictionary values are validated by our tests.</p>
+<p>Obviously this is a trivial example, and there are mutmut issue tickets open to provide better control of the mutations that are applied; I found when applying this to a large project for the first time it is easy to get swamped, so testing the most important things first (return values, logcical tests) and skipping things like mutation of constants would make it easier to know where to start.</p>
+<p>This is only a flying introduction, but I found that the use of this tool found real bugs in my code that were missed by the tests, within a few minutes. I'd encourage any developer to look into it and add it to the set of tools at their disposal. I am doing some experimentation into how to add mutation testing to CI in a useful way, and I'll make another post about that in future.</p>
+</div>
+<p class="byline">By Duncan Thomas &lt;duncan.thomas@gmail.com&gt;</p>
+
+<ul class="tags">
+<li><a href="/tags/engineering/">engineering</a></li><li><a href="/tags/testing/">testing</a></li><li><a href="/tags/unittests/">unittests</a></li><li><a href="/tags/python/">python</a></li><li><a href="/tags/golang/">golang</a></li><li><a href="/tags/mutation/">mutation</a></li>
+</ul>
+
+<nav class="post-nav">
+<a class="prev" rel="prev" href="/posts/unit-tests-1/">← Unit Testing Considered Difficult</a>
+<a class="latest" href="/posts/a-case-of-small-tools/">Latest</a>
+<a class="next" rel="next" href="/posts/leavinghpe/">Leaving HPE →</a>
+</nav>
+</article>
+
+</main>
+<footer class="site-footer">
+<nav class="recent">
+<span>Recent:</span>
+<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3xl</a>
+</nav>
+</footer>
+</body>
+</html>

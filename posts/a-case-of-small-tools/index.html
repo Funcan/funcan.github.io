@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A case of small tools — Funcan&#39;s Blog</title>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/syntax.css">
+<link rel="alternate" type="application/rss+xml" title="Funcan&#39;s Blog" href="https://funcan.github.io/rss.xml">
+</head>
+<body>
+<header class="site-header">
+<a class="site-title" href="/">Funcan&#39;s Blog</a>
+<nav class="site-nav"><a href="/tags/">Tags</a></nav>
+</header>
+<main>
+
+<article class="post">
+<h1>A case of small tools</h1>
+<p class="meta">
+<time datetime="2026-07-11">11 July 2026</time>
+</p>
+
+<img class="hero" src="/posts/a-case-of-small-tools/toolbox-r480x0.png" width="480" height="262" alt="">
+<div class="post-body"><p>I've always built small tools to  make my life easier. Drilling jigs back when
+I did factory floor piecework. A bit of code to add getters and setters to java
+classes back when I was forced to learn java in uni. A tool to list github job
+runs by parameter values last week. Some of these are single use / throw away,
+but if I find I've written something twice then I try to keep it around. I've
+started making these public on github, something I've long aspired to do but
+rarely got round to. Here are a few of the recent-ish ones:</p>
+<h3 id="gh-action-lint">gh-action-lint</h3>
+<p>A tool to lint github action workflow files. It started off checking for
+unpinned actions being used, after the mess with <code>trivy</code>, and has grow a few
+more checks since around script injection and insecure behaviour with PRs from
+forks.</p>
+<p><a href="https://github.com/Funcan/gh-action-lint">https://github.com/Funcan/gh-action-lint</a></p>
+<h3 id="kubernetes-eager-oom-killer">Kubernetes eager OOM killer</h3>
+<p>Pods in kubernetes won't get OOM killed until the node they're running on
+experiences memory pressure, even if they're massively over their memory
+requests and/or limits. This means it is easy to not notice problems with
+these values until some random future time when some unrelated service causes
+memory pressure on the node and suddenly your pods are getting killed despite
+you not having changed anything recently. You certainly can use grafana or
+similar dashboards to detect this case, but that requires being proactive. This
+is a small service that monitors container memory usage, and kills pods that
+are over their memory limits as soon as it notices them. This means you develop
+a culture of getting these tunables right (or just setting them huge to shut
+things up) rather than hoping for the best and being surprised later.</p>
+<p><a href="https://github.com/Funcan/kubernetes-eager-oom-killer">https://github.com/Funcan/kubernetes-eager-oom-killer</a></p>
+<h3 id="aws-snapshot">AWS Snapshot</h3>
+<p>A tool to create a JSON representation of the state of AWS objects in an
+account. This can be run regularly as a CRON job, and you can then use diff or
+similar to see changes over time. This allows you to narrow down the time
+window where something was created, deleted, upgraded, etc - extremely useful
+if the account has multiple teams working in it etc. I found this much easier
+than trying to track changes through terraform logs and such - instead, I can
+narrow things down to e.g. a 1 hour window, then check what jobs happened in
+that time - a much smaller search space.</p>
+<p>It currently supports:</p>
+<ul>
+<li>S3 buckets</li>
+<li>EKS clusters</li>
+<li>RDS clusters and instances</li>
+<li>Lambda functions</li>
+<li>API Gateways</li>
+<li>DynomoDB tables</li>
+<li>ELBs</li>
+<li>SNS queues</li>
+<li>SQS queues</li>
+<li>Route53 entries</li>
+</ul>
+<p>...and more. Easy to add code for a new resource types, if your requirements
+are not currently covered.</p>
+<p><a href="https://github.com/Funcan/aws-snapshot">https://github.com/Funcan/aws-snapshot</a></p>
+<h3 id="kubernetes-live-images">Kubernetes Live Images</h3>
+<p>If you have an image in use on a kubernetes cluster, then letting it get
+deleted from your docker registry can cause an outage. You don't want to keep
+all your historical images around forever though. This is a time tool that
+gathers a list of all of the images in use on a cluster, and pulls their
+metadata from the docker repository. This freshens the repository's tracking
+of what is in use, and means if you run this tool e.g. daily you can configure
+your docker repository to expire anything older than 30 days or some similar
+value and not risk losing images that are actually in use but haven't needed to
+be pulled lately.</p>
+<p><a href="https://github.com/Funcan/kubernetes-live-images">https://github.com/Funcan/kubernetes-live-images</a></p>
+<h3 id="git-who-reviewed">git who-reviewed</h3>
+<p>As a platform engineer, I often end up putting up reviews into repos that I
+don't know the owning team well. This tool will look at the reviewers of
+previous PRs that touched a given set of files, and give you a suggested list
+of reviewers to add to your PR, based on the number of reviews of such PRs and
+their recency.</p>
+<p><a href="https://github.com/Funcan/git-who-reviewed">https://github.com/Funcan/git-who-reviewed</a></p>
+<h3 id="summary">Summary</h3>
+<p>I find that writing small tools like this is a great way to encode knowledge
+and experience, and often leads to something that is either directly useful in
+future or serves as a starting point and discussion point for more tailored
+solutions. It's also nice to hear somebody having a problem and pull out a tool
+that just solves it on the spot. I hope some of these can be useful to you, and
+I'll go through some more in future. Good luck, and I always welcome hearing
+about tools you've written.</p>
+<p>NB I'm not great at remembering to put licenses in all my repos - I've a long
+standing TODO list item to write a tool to check for basic good practices in my
+repos like license files, README files, unit tests, linting CI, etc. Maybe
+you're already of a solution to that? IF so, please drop me a link. Until then,
+if it helps you for me to clarify the license of any of my repos, please ask -
+they're all intended to be open source on generous terms.</p>
+</div>
+<p class="byline">By Duncan Thomas &lt;duncan.thomas@gmail.com&gt;</p>
+
+<ul class="tags">
+<li><a href="/tags/philosophy/">philosophy</a></li><li><a href="/tags/computing/">computing</a></li>
+</ul>
+
+<nav class="post-nav">
+<a class="prev" rel="prev" href="/posts/kubernetes-time/">← What time? Kubernetes time!</a>
+
+
+</nav>
+</article>
+
+</main>
+<footer class="site-footer">
+<nav class="recent">
+<span>Recent:</span>
+<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3xl</a>
+</nav>
+</footer>
+</body>
+</html>

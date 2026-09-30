@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit Testing Considered Difficult — Funcan&#39;s Blog</title>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/syntax.css">
+<link rel="alternate" type="application/rss+xml" title="Funcan&#39;s Blog" href="https://funcan.github.io/rss.xml">
+</head>
+<body>
+<header class="site-header">
+<a class="site-title" href="/">Funcan&#39;s Blog</a>
+<nav class="site-nav"><a href="/tags/">Tags</a></nav>
+</header>
+<main>
+
+<article class="post">
+<h1>Unit Testing Considered Difficult</h1>
+<p class="meta">
+<time datetime="2019-03-06">6 March 2019</time>
+</p>
+
+<img class="hero" src="/posts/unit-tests-1/unittests-r480x0.png" width="480" height="437" alt="">
+<div class="post-body"><p>During most of my time as an OpenStack Cinder core team member, I had a
+constant nagging feeling that we were doing a bad job with unit testing. I
+could never point to one specific thing that was definitely wrong, but it
+never felt that we were doing a good job. They always felt like a rock-fetch,
+something we were adding because the 'Big Book of Software Development' said they
+were a good thing, rather than something we had a clear vision of what were
+doing and how we were going to do a good job of it.</p>
+<p>Turning my vague feelings into workable actions has taken a while, and I'm far
+from having answers for all of the questions, but I definitely consider myself
+better educated about enabling unit tests to provide value. We had a lot of
+unit tests, reasonably good coverage and fast enough runtime, so what would I
+change?</p>
+<p>We had a fair number of unit tests that had a style something like:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">frobulate</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">status</span> <span class="o">=</span> <span class="s2">&#34;Bad&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">cost</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&#34; fobulated&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="s2">&#34;frozen&#34;</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">status</span> <span class="o">=</span> <span class="s2">&#34;Good&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;name&#34;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;layer&#34;</span><span class="p">:</span> <span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;status&#34;</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre><pre class="chroma"><code><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FrobulateTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">test_frobulate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;frozen&#34;</span><span class="p">,</span> <span class="s2">&#34;pie&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Fred fobulated&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Good&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;layer&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;frozen&#34;</span><span class="p">,</span> <span class="s2">&#34;pie&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Bad&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">])</span>
+</span></span></code></pre><p>So we're getting full coverage, including all of the branches, so our metrics
+look good. I don't thing this is a useful test at all though.</p>
+<h4 id="whats-wrong-with-this">What's wrong with this?</h4>
+<ol>
+<li>Each unit test should express one, and ideally only one, intent of the code</li>
+</ol>
+<p>Reading this test, I've no idea what the frobulate function does. I need to go
+and read all of the code to answer that.</p>
+<ol start="2">
+<li>The test doesn't tell me what the corner cases are</li>
+</ol>
+<p>We've a magic value of 4 in the code but no explicit testing around that value.</p>
+<ol start="3">
+<li>The test provides little to no protection during refactoring
+If the code has to change (either through refactoring, minor requirements
+change or functional enhancements) then the test has to change which means
+that it doesn't do a good job of telling me whether I've broken anything.</li>
+</ol>
+<p>With those points in mind, what would a better unit test look like?</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FrobulateTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFrobulateDictFields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">keys</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s2">&#34;status&#34;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s2">&#34;name&#34;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s2">&#34;layer&#34;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFrobulate4LayersUnfrobulated</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Name should be unfrobulated for &lt;= 4 layers</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFroblulate5LayerFrobulated</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Name should be frobulated for 5+ layers</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Debug: </span><span class="si">%s</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&#34;fobulated&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFroblulateFrozenGood</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;water&#34;</span><span class="p">,</span> <span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;frozen&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">],</span> <span class="s2">&#34;Good&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFrobulateNoFrozenBad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;water&#34;</span><span class="p">,</span> <span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;melted&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">],</span> <span class="s2">&#34;Bad&#34;</span><span class="p">)</span>
+</span></span></code></pre><p>We've once again got 100% coverage, but now if we change the behaviour of the
+frobulate function, it is highly likely that several of these tests won't have
+to change, which gives a higher confidence that we haven't broken things.</p>
+<p>I'm quite sure that the above tests could be improved more, and the cinder
+tests are in a better state than I remember them being. I hope to get time to
+submit a few patches to make them better still, especially once I've had more
+chance to play with my most recent discovery in the field of unit testing,
+which is mutation testing, the subject of a blog post in the near future.</p>
+</div>
+<p class="byline">By Duncan Thomas &lt;duncan.thomas@gmail.com&gt;</p>
+
+<ul class="tags">
+<li><a href="/tags/engineering/">engineering</a></li><li><a href="/tags/testing/">testing</a></li><li><a href="/tags/openstack/">openstack</a></li><li><a href="/tags/python/">python</a></li><li><a href="/tags/unittest/">unittest</a></li>
+</ul>
+
+<nav class="post-nav">
+
+<a class="latest" href="/posts/a-case-of-small-tools/">Latest</a>
+<a class="next" rel="next" href="/posts/unit-tests-2-mutation/">Mutation Testing Tests Your Tests →</a>
+</nav>
+</article>
+
+</main>
+<footer class="site-footer">
+<nav class="recent">
+<span>Recent:</span>
+<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3xl</a>
+</nav>
+</footer>
+</body>
+</html>

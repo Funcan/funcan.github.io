@@ -1,0 +1,77 @@
+/* site.css — layout and typography starting point. Edit freely; the
+   renderer copies templates/static/ verbatim into the output. */
+
+:root {
+	--fg: #222;
+	--bg: #fff;
+	--accent: #06c;
+	--muted: #666;
+	--maxw: 42rem;
+}
+
+* { box-sizing: border-box; }
+
+body {
+	margin: 0;
+	color: var(--fg);
+	background: var(--bg);
+	font: 1.05rem/1.6 -apple-system, system-ui, sans-serif;
+}
+
+main, .site-header, .site-footer {
+	max-width: var(--maxw);
+	margin: 0 auto;
+	padding: 1rem;
+}
+
+.site-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	border-bottom: 1px solid #eee;
+}
+
+.site-title { font-weight: 700; text-decoration: none; color: var(--fg); }
+.site-nav a { margin-left: 1rem; }
+
+a { color: var(--accent); }
+
+.post .hero {
+	display: block;
+	margin: 0 auto;
+	max-width: 100%;
+	height: auto;
+	border-radius: 6px;
+}
+
+.meta { color: var(--muted); font-size: 0.9rem; }
+
+.byline { color: var(--muted); font-size: 0.9rem; font-style: italic; margin-top: 2rem; }
+
+.tags { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tags li a {
+	display: inline-block;
+	padding: 0.1rem 0.5rem;
+	background: #f0f0f0;
+	border-radius: 999px;
+	text-decoration: none;
+	font-size: 0.85rem;
+}
+
+.post-nav { display: flex; justify-content: space-between; margin-top: 2rem; }
+
+.postlist { list-style: none; padding: 0; }
+.postlist .summary { color: var(--muted); margin: 0.2rem 0 1rem; }
+
+pre {
+	overflow-x: auto;
+	padding: 1rem;
+	border-radius: 6px;
+}
+
+.site-footer {
+	border-top: 1px solid #eee;
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+.recent a { margin-right: 0.75rem; }

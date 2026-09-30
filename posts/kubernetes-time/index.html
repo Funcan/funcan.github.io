@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What time? Kubernetes time! — Funcan&#39;s Blog</title>
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/syntax.css">
+<link rel="alternate" type="application/rss+xml" title="Funcan&#39;s Blog" href="https://funcan.github.io/rss.xml">
+</head>
+<body>
+<header class="site-header">
+<a class="site-title" href="/">Funcan&#39;s Blog</a>
+<nav class="site-nav"><a href="/tags/">Tags</a></nav>
+</header>
+<main>
+
+<article class="post">
+<h1>What time? Kubernetes time!</h1>
+<p class="meta">
+<time datetime="2026-07-10">10 July 2026</time>
+</p>
+
+<img class="hero" src="/posts/kubernetes-time/kube-clock-r480x0.png" width="480" height="480" alt="">
+<div class="post-body"><p>From time to time I run into a situation where I'd like notes for if I ever hit
+it again. I've probably got hundreds of text and markdown files with such
+things, but I thought I'd try to start making them public rather than writing
+them and mostly forgetting about it. Hopefully some of them prove useful to
+somebody...</p>
+<p>Recently I was trying to debug a situation with a distributed service on K8s
+and I was becoming more and more convinced that the issue was that one of the
+nodes had a clock hours off. It turned out not to be the case, but proving that
+was painful enough that I though I'd have a go at making up something easy to
+deploy next time.</p>
+<p>Back when I build HPC compute clusters, every node ran <code>ntpd</code>, and you could
+check the time differences between them with <code>ntpdate</code> for debugging. Running
+daemons in the background on compute clusters that did tightly coupled
+distributed computations can have some interesting performance issues [^1] but
+things like time sync are just to critical to not have. <code>ntpd</code> is old and
+crufty code though, and not at all friendly to run in containers or a non-root
+environment - it makes assumptions about what you want.</p>
+<p>Cloud VMs generally don't to worry about time, the hypervisor takes care of it
+for you. The AWS EKS images don't have <code>ntpd</code> running, and as mentioned it is
+painful to run in a container. Thankfully <a href="https://chrony-project.org/">chrony</a>
+exists as a modern reimplementation of time sync, and it is happy to run in a
+container and just track offsets rather than trying to fix the system clock.
+There's even an existing commulity project that queries <code>chrony</code> pods in a
+deamonset and turns the offsets into grafana metrics -
+<a href="https://github.com/SuperQ/chrony_exporter">chrony-exporter</a>.</p>
+<p>It's easy enough to deploy a daemonset running chrony on every node, then
+either run a one-shot job to collect the time offsets, or run <code>chrony-exporter</code>
+to continuously track clock drift.</p>
+<p>The daemonset:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">DaemonSet</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">securityContext</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="m">1000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">chronyd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">alpine:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="l">/bin/sh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- -<span class="l">c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 1. Install chrony
+</span></span></span><span class="line"><span class="cl"><span class="sd">            apk add --no-cache chrony
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 2. Create the unprivileged config
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cat &lt;&lt;EOF &gt; /tmp/chrony.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">            port 1123
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cmdport 0
+</span></span></span><span class="line"><span class="cl"><span class="sd">            allow all
+</span></span></span><span class="line"><span class="cl"><span class="sd">            local stratum 10
+</span></span></span><span class="line"><span class="cl"><span class="sd">            EOF
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 3. Run chronyd in the foreground (-d), no clock modifications (-x)
+</span></span></span><span class="line"><span class="cl"><span class="sd">            exec chronyd -d -x -f /tmp/chrony.conf</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">1123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">UDP</span><span class="w">
+</span></span></span></code></pre><p>We then need a service to expose this to other pods over the network. Since we
+need to be able to reach each pod individually, not just round-robin between
+pods, we need a headless service. This means the DNS name for the service will
+resolve to a list of IPs, one for each pod, rather than a single IP of a
+load-balancer.</p>
+<p>The service:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-mesh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">clusterIP</span><span class="p">:</span><span class="w"> </span><span class="l">None</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">1123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">UDP</span><span class="w">
+</span></span></span></code></pre><p>Once these two are applied, we can start querying the time differences. If we
+wnat a one-shot query, we can use a script wrapped in a kubernetes job such as:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">batch/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Job</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-debug-job</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># A timestamp label helps if you run this frequently</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-debug</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Optional: Automatically delete the Job and its Pod 10 minutes after it finishes</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ttlSecondsAfterFinished</span><span class="p">:</span><span class="w"> </span><span class="m">600</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">restartPolicy</span><span class="p">:</span><span class="w"> </span><span class="l">Never</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">securityContext</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="m">1000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">alpine:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="l">/bin/sh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- -<span class="l">c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;Starting time debug job...&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 1. Install dependencies silently
+</span></span></span><span class="line"><span class="cl"><span class="sd">          apk add --no-cache chrony bind-tools &gt; /dev/null 2&gt;&amp;1
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 2. Discover peers via the Headless Service
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;Discovering DaemonSet peers...&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          PEERS=$(nslookup time-mesh.default.svc.cluster.local | awk &#39;/^Address: / { print $2 }&#39; | grep -v &#39;:&#39;)
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          if [ -z &#34;$PEERS&#34; ]; then
+</span></span></span><span class="line"><span class="cl"><span class="sd">            echo &#34;ERROR: Could not resolve time-mesh.default.svc.cluster.local. Is the service running?&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            exit 1
+</span></span></span><span class="line"><span class="cl"><span class="sd">          fi
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 3. Build the config
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;driftfile /tmp/chrony.drift&#34; &gt; /tmp/query.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">          for IP in $PEERS; do
+</span></span></span><span class="line"><span class="cl"><span class="sd">              echo &#34;server $IP port 1123 iburst&#34; &gt;&gt; /tmp/query.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">          done
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 4. Fire the query and print the matrix
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;Gathering microsecond-level offsets across the cluster...&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;--------------------------------------------------------&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          chronyd -Q -u $(whoami) -f /tmp/query.conf</span><span class="w">
+</span></span></span></code></pre><p>If we want to monitor drift over time then we can install <code>chrony-exporter</code>.
+This involves adding a sidecar to our <code>chrony</code> daemonset. If you are using a
+version of k8s new enough to support native sidecar support, it's probably
+worth using that (change the <code>chroony-exporter</code> container to an <code>initContainer</code>
+with a restart-policy of <code>always</code>). The following it the new daemonset with the
+sidecar added:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">DaemonSet</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">annotations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c"># Standard Prometheus scraping annotations</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">prometheus.io/scrape</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">prometheus.io/port</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;9123&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">securityContext</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="m">1000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">chronyd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">alpine:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="l">/bin/sh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- -<span class="l">c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            apk add --no-cache chrony
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # Updated Config: cmdport is enabled on localhost for the exporter
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cat &lt;&lt;EOF &gt; /tmp/chrony.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">            port 1123
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cmdport 323
+</span></span></span><span class="line"><span class="cl"><span class="sd">            bindcmdaddress 127.0.0.1
+</span></span></span><span class="line"><span class="cl"><span class="sd">            allow all
+</span></span></span><span class="line"><span class="cl"><span class="sd">            local stratum 10
+</span></span></span><span class="line"><span class="cl"><span class="sd">            EOF
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            exec chronyd -d -x -f /tmp/chrony.conf</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">1123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">UDP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">chrony-exporter</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">quay.io/superq/chrony-exporter:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="c"># Tell the exporter to look at the localhost cmdport we just opened</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="s2">&#34;--chrony.address=127.0.0.1:323&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">9123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span></code></pre><p>You may then need to add a <code>ServiceMonitor</code> or <code>PodMonitor</code> depending on your
+Prometheus operator setup. Something like:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring.coreos.com/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ServiceMonitor</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker-monitor</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">release</span><span class="p">:</span><span class="w"> </span><span class="l">prometheus-operator</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespaceSelector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchNames</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">endpoints</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">9123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
+</span></span></span></code></pre><p>Some there you go. This can be improved - using a proper stripped down image
+rather than alpine, adding liveness probe to the <code>chrony</code> pods and the
+exported, wrapping the whole thing in a helm chart, etc, but it's good enough
+for debugging. I may or may not get round to polishing it some more.</p>
+<p>[^1]: See for example the classic paper <a href="https://dl.acm.org/doi/10.1145/1048935.1050204">The Case of the Missing Supercomputer
+Perfomance</a> that I helped
+debug as an intern</p>
+</div>
+<p class="byline">By Duncan Thomas &lt;duncan.thomas@gmail.com&gt;</p>
+
+<ul class="tags">
+<li><a href="/tags/kubernetes/">kubernetes</a></li><li><a href="/tags/time/">time</a></li><li><a href="/tags/chrony/">chrony</a></li><li><a href="/tags/debugging/">debugging</a></li><li><a href="/tags/clusters/">clusters</a></li><li><a href="/tags/tooling/">tooling</a></li><li><a href="/tags/ntp/">ntp</a></li>
+</ul>
+
+<nav class="post-nav">
+<a class="prev" rel="prev" href="/posts/blink/">← Blink is back, baby</a>
+<a class="latest" href="/posts/a-case-of-small-tools/">Latest</a>
+<a class="next" rel="next" href="/posts/a-case-of-small-tools/">A case of small tools →</a>
+</nav>
+</article>
+
+</main>
+<footer class="site-footer">
+<nav class="recent">
+<span>Recent:</span>
+<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3xl</a>
+</nav>
+</footer>
+</body>
+</html>

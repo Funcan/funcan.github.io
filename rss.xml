@@ -1,0 +1,823 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Funcan&amp;#39;s Blog</title>
+    <link>https://funcan.github.io/</link>
+    <description>Funcan&amp;#39;s Blog</description>
+    <pubDate>Sat, 11 Jul 2026 00:00:00 +0000</pubDate>
+    <item>
+      <title>A case of small tools</title>
+      <link>https://funcan.github.io/posts/a-case-of-small-tools/</link>
+      <description>Small tools helping make life better, a small piece at a time</description>
+      <content:encoded><![CDATA[<p>I've always built small tools to  make my life easier. Drilling jigs back when
+I did factory floor piecework. A bit of code to add getters and setters to java
+classes back when I was forced to learn java in uni. A tool to list github job
+runs by parameter values last week. Some of these are single use / throw away,
+but if I find I've written something twice then I try to keep it around. I've
+started making these public on github, something I've long aspired to do but
+rarely got round to. Here are a few of the recent-ish ones:</p>
+<h3 id="gh-action-lint">gh-action-lint</h3>
+<p>A tool to lint github action workflow files. It started off checking for
+unpinned actions being used, after the mess with <code>trivy</code>, and has grow a few
+more checks since around script injection and insecure behaviour with PRs from
+forks.</p>
+<p><a href="https://github.com/Funcan/gh-action-lint">https://github.com/Funcan/gh-action-lint</a></p>
+<h3 id="kubernetes-eager-oom-killer">Kubernetes eager OOM killer</h3>
+<p>Pods in kubernetes won't get OOM killed until the node they're running on
+experiences memory pressure, even if they're massively over their memory
+requests and/or limits. This means it is easy to not notice problems with
+these values until some random future time when some unrelated service causes
+memory pressure on the node and suddenly your pods are getting killed despite
+you not having changed anything recently. You certainly can use grafana or
+similar dashboards to detect this case, but that requires being proactive. This
+is a small service that monitors container memory usage, and kills pods that
+are over their memory limits as soon as it notices them. This means you develop
+a culture of getting these tunables right (or just setting them huge to shut
+things up) rather than hoping for the best and being surprised later.</p>
+<p><a href="https://github.com/Funcan/kubernetes-eager-oom-killer">https://github.com/Funcan/kubernetes-eager-oom-killer</a></p>
+<h3 id="aws-snapshot">AWS Snapshot</h3>
+<p>A tool to create a JSON representation of the state of AWS objects in an
+account. This can be run regularly as a CRON job, and you can then use diff or
+similar to see changes over time. This allows you to narrow down the time
+window where something was created, deleted, upgraded, etc - extremely useful
+if the account has multiple teams working in it etc. I found this much easier
+than trying to track changes through terraform logs and such - instead, I can
+narrow things down to e.g. a 1 hour window, then check what jobs happened in
+that time - a much smaller search space.</p>
+<p>It currently supports:</p>
+<ul>
+<li>S3 buckets</li>
+<li>EKS clusters</li>
+<li>RDS clusters and instances</li>
+<li>Lambda functions</li>
+<li>API Gateways</li>
+<li>DynomoDB tables</li>
+<li>ELBs</li>
+<li>SNS queues</li>
+<li>SQS queues</li>
+<li>Route53 entries</li>
+</ul>
+<p>...and more. Easy to add code for a new resource types, if your requirements
+are not currently covered.</p>
+<p><a href="https://github.com/Funcan/aws-snapshot">https://github.com/Funcan/aws-snapshot</a></p>
+<h3 id="kubernetes-live-images">Kubernetes Live Images</h3>
+<p>If you have an image in use on a kubernetes cluster, then letting it get
+deleted from your docker registry can cause an outage. You don't want to keep
+all your historical images around forever though. This is a time tool that
+gathers a list of all of the images in use on a cluster, and pulls their
+metadata from the docker repository. This freshens the repository's tracking
+of what is in use, and means if you run this tool e.g. daily you can configure
+your docker repository to expire anything older than 30 days or some similar
+value and not risk losing images that are actually in use but haven't needed to
+be pulled lately.</p>
+<p><a href="https://github.com/Funcan/kubernetes-live-images">https://github.com/Funcan/kubernetes-live-images</a></p>
+<h3 id="git-who-reviewed">git who-reviewed</h3>
+<p>As a platform engineer, I often end up putting up reviews into repos that I
+don't know the owning team well. This tool will look at the reviewers of
+previous PRs that touched a given set of files, and give you a suggested list
+of reviewers to add to your PR, based on the number of reviews of such PRs and
+their recency.</p>
+<p><a href="https://github.com/Funcan/git-who-reviewed">https://github.com/Funcan/git-who-reviewed</a></p>
+<h3 id="summary">Summary</h3>
+<p>I find that writing small tools like this is a great way to encode knowledge
+and experience, and often leads to something that is either directly useful in
+future or serves as a starting point and discussion point for more tailored
+solutions. It's also nice to hear somebody having a problem and pull out a tool
+that just solves it on the spot. I hope some of these can be useful to you, and
+I'll go through some more in future. Good luck, and I always welcome hearing
+about tools you've written.</p>
+<p>NB I'm not great at remembering to put licenses in all my repos - I've a long
+standing TODO list item to write a tool to check for basic good practices in my
+repos like license files, README files, unit tests, linting CI, etc. Maybe
+you're already of a solution to that? IF so, please drop me a link. Until then,
+if it helps you for me to clarify the license of any of my repos, please ask -
+they're all intended to be open source on generous terms.</p>
+]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/a-case-of-small-tools/</guid>
+      <pubDate>Sat, 11 Jul 2026 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>What time? Kubernetes time!</title>
+      <link>https://funcan.github.io/posts/kubernetes-time/</link>
+      <description>How to debug time issues in kubernetes clusters</description>
+      <content:encoded><![CDATA[<p>From time to time I run into a situation where I'd like notes for if I ever hit
+it again. I've probably got hundreds of text and markdown files with such
+things, but I thought I'd try to start making them public rather than writing
+them and mostly forgetting about it. Hopefully some of them prove useful to
+somebody...</p>
+<p>Recently I was trying to debug a situation with a distributed service on K8s
+and I was becoming more and more convinced that the issue was that one of the
+nodes had a clock hours off. It turned out not to be the case, but proving that
+was painful enough that I though I'd have a go at making up something easy to
+deploy next time.</p>
+<p>Back when I build HPC compute clusters, every node ran <code>ntpd</code>, and you could
+check the time differences between them with <code>ntpdate</code> for debugging. Running
+daemons in the background on compute clusters that did tightly coupled
+distributed computations can have some interesting performance issues [^1] but
+things like time sync are just to critical to not have. <code>ntpd</code> is old and
+crufty code though, and not at all friendly to run in containers or a non-root
+environment - it makes assumptions about what you want.</p>
+<p>Cloud VMs generally don't to worry about time, the hypervisor takes care of it
+for you. The AWS EKS images don't have <code>ntpd</code> running, and as mentioned it is
+painful to run in a container. Thankfully <a href="https://chrony-project.org/">chrony</a>
+exists as a modern reimplementation of time sync, and it is happy to run in a
+container and just track offsets rather than trying to fix the system clock.
+There's even an existing commulity project that queries <code>chrony</code> pods in a
+deamonset and turns the offsets into grafana metrics -
+<a href="https://github.com/SuperQ/chrony_exporter">chrony-exporter</a>.</p>
+<p>It's easy enough to deploy a daemonset running chrony on every node, then
+either run a one-shot job to collect the time offsets, or run <code>chrony-exporter</code>
+to continuously track clock drift.</p>
+<p>The daemonset:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">DaemonSet</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">securityContext</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="m">1000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">chronyd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">alpine:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="l">/bin/sh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- -<span class="l">c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 1. Install chrony
+</span></span></span><span class="line"><span class="cl"><span class="sd">            apk add --no-cache chrony
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 2. Create the unprivileged config
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cat &lt;&lt;EOF &gt; /tmp/chrony.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">            port 1123
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cmdport 0
+</span></span></span><span class="line"><span class="cl"><span class="sd">            allow all
+</span></span></span><span class="line"><span class="cl"><span class="sd">            local stratum 10
+</span></span></span><span class="line"><span class="cl"><span class="sd">            EOF
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # 3. Run chronyd in the foreground (-d), no clock modifications (-x)
+</span></span></span><span class="line"><span class="cl"><span class="sd">            exec chronyd -d -x -f /tmp/chrony.conf</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">1123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">UDP</span><span class="w">
+</span></span></span></code></pre><p>We then need a service to expose this to other pods over the network. Since we
+need to be able to reach each pod individually, not just round-robin between
+pods, we need a headless service. This means the DNS name for the service will
+resolve to a list of IPs, one for each pod, rather than a single IP of a
+load-balancer.</p>
+<p>The service:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-mesh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">clusterIP</span><span class="p">:</span><span class="w"> </span><span class="l">None</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">1123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">UDP</span><span class="w">
+</span></span></span></code></pre><p>Once these two are applied, we can start querying the time differences. If we
+wnat a one-shot query, we can use a script wrapped in a kubernetes job such as:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">batch/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Job</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-debug-job</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># A timestamp label helps if you run this frequently</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-debug</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Optional: Automatically delete the Job and its Pod 10 minutes after it finishes</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ttlSecondsAfterFinished</span><span class="p">:</span><span class="w"> </span><span class="m">600</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">restartPolicy</span><span class="p">:</span><span class="w"> </span><span class="l">Never</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">securityContext</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="m">1000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">alpine:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="l">/bin/sh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- -<span class="l">c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;Starting time debug job...&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 1. Install dependencies silently
+</span></span></span><span class="line"><span class="cl"><span class="sd">          apk add --no-cache chrony bind-tools &gt; /dev/null 2&gt;&amp;1
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 2. Discover peers via the Headless Service
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;Discovering DaemonSet peers...&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          PEERS=$(nslookup time-mesh.default.svc.cluster.local | awk &#39;/^Address: / { print $2 }&#39; | grep -v &#39;:&#39;)
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          if [ -z &#34;$PEERS&#34; ]; then
+</span></span></span><span class="line"><span class="cl"><span class="sd">            echo &#34;ERROR: Could not resolve time-mesh.default.svc.cluster.local. Is the service running?&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">            exit 1
+</span></span></span><span class="line"><span class="cl"><span class="sd">          fi
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 3. Build the config
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;driftfile /tmp/chrony.drift&#34; &gt; /tmp/query.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">          for IP in $PEERS; do
+</span></span></span><span class="line"><span class="cl"><span class="sd">              echo &#34;server $IP port 1123 iburst&#34; &gt;&gt; /tmp/query.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">          done
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">          # 4. Fire the query and print the matrix
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;Gathering microsecond-level offsets across the cluster...&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          echo &#34;--------------------------------------------------------&#34;
+</span></span></span><span class="line"><span class="cl"><span class="sd">          chronyd -Q -u $(whoami) -f /tmp/query.conf</span><span class="w">
+</span></span></span></code></pre><p>If we want to monitor drift over time then we can install <code>chrony-exporter</code>.
+This involves adding a sidecar to our <code>chrony</code> daemonset. If you are using a
+version of k8s new enough to support native sidecar support, it's probably
+worth using that (change the <code>chroony-exporter</code> container to an <code>initContainer</code>
+with a restart-policy of <code>always</code>). The following it the new daemonset with the
+sidecar added:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">DaemonSet</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">annotations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c"># Standard Prometheus scraping annotations</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">prometheus.io/scrape</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">prometheus.io/port</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;9123&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">securityContext</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w"> </span><span class="m">1000</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">runAsNonRoot</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">chronyd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">alpine:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="l">/bin/sh</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- -<span class="l">c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            apk add --no-cache chrony
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            # Updated Config: cmdport is enabled on localhost for the exporter
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cat &lt;&lt;EOF &gt; /tmp/chrony.conf
+</span></span></span><span class="line"><span class="cl"><span class="sd">            port 1123
+</span></span></span><span class="line"><span class="cl"><span class="sd">            cmdport 323
+</span></span></span><span class="line"><span class="cl"><span class="sd">            bindcmdaddress 127.0.0.1
+</span></span></span><span class="line"><span class="cl"><span class="sd">            allow all
+</span></span></span><span class="line"><span class="cl"><span class="sd">            local stratum 10
+</span></span></span><span class="line"><span class="cl"><span class="sd">            EOF
+</span></span></span><span class="line"><span class="cl"><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">            exec chronyd -d -x -f /tmp/chrony.conf</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">1123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">UDP</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">chrony-exporter</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">quay.io/superq/chrony-exporter:latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="c"># Tell the exporter to look at the localhost cmdport we just opened</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="s2">&#34;--chrony.address=127.0.0.1:323&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">9123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">TCP</span><span class="w">
+</span></span></span></code></pre><p>You may then need to add a <code>ServiceMonitor</code> or <code>PodMonitor</code> depending on your
+Prometheus operator setup. Something like:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">monitoring.coreos.com/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ServiceMonitor</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker-monitor</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">release</span><span class="p">:</span><span class="w"> </span><span class="l">prometheus-operator</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">time-checker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespaceSelector</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">matchNames</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">endpoints</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">9123</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
+</span></span></span></code></pre><p>Some there you go. This can be improved - using a proper stripped down image
+rather than alpine, adding liveness probe to the <code>chrony</code> pods and the
+exported, wrapping the whole thing in a helm chart, etc, but it's good enough
+for debugging. I may or may not get round to polishing it some more.</p>
+<p>[^1]: See for example the classic paper <a href="https://dl.acm.org/doi/10.1145/1048935.1050204">The Case of the Missing Supercomputer
+Perfomance</a> that I helped
+debug as an intern</p>
+]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/kubernetes-time/</guid>
+      <pubDate>Fri, 10 Jul 2026 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Blink is back, baby</title>
+      <link>https://funcan.github.io/posts/blink/</link>
+      <description>Recreating &amp;lt;blink&amp;gt; with CSS for fun and profit</description>
+      <content:encoded><![CDATA[<p>I can't remember why, but I found a time I actually wanted a blink tag a month
+or two ago, and for the first time ever, missed it.</p>
+<p>I just discovered this CSS snippit and am keeping it here in case I ever want
+it again...</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">blink</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">animation</span><span class="p">:</span> <span class="mi">700</span><span class="kt">ms</span> <span class="kc">linear</span> <span class="kc">infinite</span> <span class="n">blink_with_phosphor_fade</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">@</span><span class="k">keyframes</span> <span class="nt">blink_with_phosphor_fade</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">0</span><span class="o">%</span>    <span class="p">{</span> <span class="k">opacity</span><span class="p">:</span> <span class="mi">1</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">50</span><span class="o">%</span>   <span class="p">{</span> <span class="k">opacity</span><span class="p">:</span> <span class="mi">1</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">65</span><span class="o">%</span>   <span class="p">{</span> <span class="k">opacity</span><span class="p">:</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">99</span><span class="p">.</span><span class="nc">9</span><span class="o">%</span> <span class="p">{</span> <span class="k">opacity</span><span class="p">:</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">100</span><span class="o">%</span>  <span class="p">{</span> <span class="k">opacity</span><span class="p">:</span> <span class="mi">1</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre>]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/blink/</guid>
+      <pubDate>Mon, 24 Feb 2020 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Kubecon Europe 2019</title>
+      <link>https://funcan.github.io/posts/kubecon-europe-2019/</link>
+      <description>My initial thoughts and impressions from the conference</description>
+      <content:encoded><![CDATA[<p>4 days, 8000 attendees, 103 listed sponsors, 18 lightening talks, 26 keynotes,
+something like 400 talks, 3 official parties. So what were my initial takeaway
+points from <a href="https://events.linuxfoundation.org/events/kubecon-cloudnativecon-europe-2019/">the event</a>?</p>
+<h3 id="security">Security</h3>
+<p>This was definitely a major topic. Both access control (RBAC and OPA being the
+major topics of discussion) and network security (network policies) had several
+sessions each dedicated to them. Several pen-testing and capture-the-flag
+sessions. Lots of vendors are in this space, doing container scanning and live
+system behaviour monitoring.</p>
+<p>Kubernetes started off being single tenant and with a trusted internal network,
+but projects to fix this are going from alpha to being-used-in-production in
+timescales of 12 months or less.</p>
+<h3 id="monitoring-logging-tracing-and-metrics">Monitoring, logging, tracing and metrics</h3>
+<p>There is wide acceptance that this is not trivial to roll your own solution,
+and lots of vendors are ffering to take care of a lot of it for you. I didn't
+see that much to differentiate their offerings to be honest, though I was only
+looking at sales materials and demos rather than digging deeply. If you want a
+dashboard full of graphs, there are lots of people to do it for you. If you
+need searchable logs aggregating, then the same. There are a range of options
+for tracing, from hosted to managed to install-it-yourself, all taking
+advantage of the <a href="https://opentracing.io/">opentracing</a> standard.</p>
+<h3 id="managed-services">Managed services</h3>
+<p>Standing up a production grade K8s system is definitely not for the faint
+hearted. There are a lot of moving parts, a great deal changes from release to
+release, and there are a myriad of ways of shooting yourself in the foot.</p>
+<p>There are plenty of vendors offering to take this work off your hands. All of
+the big cloud players have an offering, various traditional virtual hosting
+providers have offerings and there are as-a-service offerings that are cross-
+platform, both on prem and across various public clouds.</p>
+<p>Given how this space is maturing, it starts to become more sensible to question
+the wisdom of having an in-house K8s operations team. I'd be interested to see
+what sorts of SLA and other support levels are provided, and get off-the-record
+customer stories.</p>
+<h3 id="war-stories">War Stories</h3>
+<p>Some of the most popular sessions I saw (with queues out of the door in several
+cases) were war stories or practical best practice. I heard other people
+talking about the exact same issues we've found and solved, and there is a huge
+value to sharing this knowledge to prevent us all having to reinvent the wheel.</p>
+<h3 id="conclusion">Conclusion</h3>
+<p>This was my first big conference in a couple of years, my first in my new role
+at Groupon, and a hugely valuable experience. From meeting several of my
+international colleagues face-to-face for the first time, to catching up with
+what the various folks from the Openstack world are now up to, to getting a
+feel for what's hot and not in the world of Kubernetes, it has been a week well
+spent.</p>
+<p>I intend to write up some of my session notes, record some demos to make sure
+I understand some new things, and I'll post as much as I can to this blog over
+the coming weeks, so please feel free to come back, or find an RSS link on the
+left sidebar.</p>
+<p>Any questions, comments or other feedback, please do reach out to me via
+<a href="mailto:duncan.thomas@gmail.com">duncan.thomas@gmail.com</a>. Thanks for reading!</p>
+]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/kubecon-europe-2019/</guid>
+      <pubDate>Sun, 19 May 2019 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>1 Week on a Pixel 3xl</title>
+      <link>https://funcan.github.io/posts/1-week-on-a-pixel-3/</link>
+      <description>New phone, new complaints</description>
+      <content:encoded><![CDATA[<p>I managed to brick my trusty OnePlus 3T while trying to upgrade to the new
+Android Pie public beta (I'm sure it's fixable, but I haven't the energy
+or time right now) so I decided to treat myself to a shiny new Pixel 3i XL.</p>
+<p>This is a flagship phone, so I had high expectation, and I'm conflicted
+about whether I consider it overall an improvement or not - something are
+definitely better, but others are worse, and several of the improvements
+I'd have got on the 3T Pie upgrade I believe.</p>
+<h2 id="the-good">The Good</h2>
+<h4 id="the-camera-is-stunningly-good">The camera is stunningly good</h4>
+<p>Really, this was the biggest thing I hoped with the phone, and it took me
+a while to be convinced, but the camera really is just better. I hope to
+resurrect the 3T and do a side-by-side camera comparison at some point, but
+for now I'll just state that the low light performance of the Pixel 3 just
+blows any other phone camera I've used out of the water, and on a recent
+trip to Portugal several people commented that the camera managed to make
+the scene look even better than it looked in life. I'm very happy with
+this.</p>
+<h4 id="the-phone-book-is-smarter">The phone book is smarter</h4>
+<p>I was surprised when calling my local bike shop to see that my phone
+logged the name of the shop I was calling without it being in my contacts.
+I've not yet had chance to test if this works on incoming calls to, but
+I'll be very happy if it does. Some people may have privacy concerns about
+this, and I can't see an option to turn it off, but for me this is
+a definite improvement, especially if it works for incoming calls - I'm
+one of those people who dislikes answering calls if I don't know who is
+calling.</p>
+<h4 id="wireless-charging">Wireless charging</h4>
+<p>I didn't really expect this to be a big change, but I bought a fancy
+charging stand with the phone, to see if I'd use it. I ended up shortly
+after buying a second, and I expect I'll pick up a third at some point. It
+only saves a couple of seconds when I sit down at my desk at work or when
+I go to bed, but I find I'm more likely to put my phone on the charging
+stand than I used to be to plug it in, so my phone is fully charged more
+often.</p>
+<h4 id="no-more-accidental-ring-volume-changes">No more accidental ring volume changes</h4>
+<p>I think this is an Android Pie change rather than a pixel-specific change,
+but it has always bugged me that accidentally pressing the volume keys in
+my pocket can turn down my ring volume, or turn my phone off silent. That
+no longer happens. It still isn't exactly what I want, since it changes
+the media volume while the screen is off/locked and there's nothing
+playing, but it's much better than it was.</p>
+<h2 id="the-not-so-good">The Not So Good</h2>
+<h4 id="random-hangs">Random hangs</h4>
+<p>The phone seems to hang for up to a couple of seconds at a time at random,
+especially but not exclusively while web browsing. I never noticed this on
+my 3T.</p>
+<h4 id="accidental-screen-touches">Accidental screen touches</h4>
+<p>Bezel-less design seems to be 'a thing', but I don't understand why people
+want it. I keep getting accidental screen touches on the edge of the
+screen from where I'm holding the phone. I'm sure I'll find a slightly
+different way of gripping it at some point that won't cause this, but the
+less phone edge there is to grip the worse this gets.</p>
+<h4 id="repeated-google-news--now-notifications">Repeated Google news / now notifications</h4>
+<p>I know there's a new &quot;Spiderman - Far from Home&quot; trailer. I watched it
+when you told me about it yesterday. I don't need to be told 5 times
+a day, thanks.</p>
+<p>In general, the news app notifications seem to happen much, much more
+frequently. I think I'll end up turning them off entirely.</p>
+<h4 id="the-pixel-stand-app">The pixel stand app</h4>
+<p>The app thing that runs when I put my pixel on the stand is stupid. It
+shows partial notifications, disabled the fingerprint reader (so I have to
+double tap the power button before I can unlock the phone) and won't just
+disable sleep, which is what I usually want and which I can do just fine
+from developer options when wired charging. I can't see anyway to
+customise what happens when the phone is on the stand beyond some trivial
+options - hopefully somebody has written something better but I've not
+found it yet.</p>
+<h4 id="squeeze-to-activate-assistant">Squeeze-to-activate assistant</h4>
+<p>The squeeze-to-activate function for the assistant seems very flaky. There
+are a couple of sensitivity settings though so maybe I just need to fiddle
+more.</p>
+<h2 id="the-bad">The Bad</h2>
+<h4 id="cost">Cost</h4>
+<p>This phone is undeniably expensive, and the accessories too. This phone
+cost more than my laptop. I think this has been noted by the industry, and
+the new flagship-lite phones that are coming out are a reaction to this.</p>
+<h4 id="lack-of-headphone-socket">Lack of headphone socket</h4>
+<p>I can't use headphones and charge at the same time. On a flight or long
+bus ride, this is definitely a downside. Bluetooth drains my trusty QC35s
+much faster than a wired connection. There might be a dongle available
+that allows both headphones and charger to be used at once, but right now
+it's just a pain.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Before I saw how the photos came out, I was ready to send the phone back
+and wait for the next generation. I've just about been pushed over the
+hump by the camera quality, and I'll see what I can do about fixing some
+of the niggles.</p>
+<p>If you've any tips for fixing my complaints, I'd love to hear them so please do <a href="mailto:duncan.thomas@gmail.com">mail me</a>.</p>
+]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/1-week-on-a-pixel-3/</guid>
+      <pubDate>Thu, 09 May 2019 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Leaving HPE</title>
+      <link>https://funcan.github.io/posts/leavinghpe/</link>
+      <description>Leaving is always hard to do. Best foot forward</description>
+      <content:encoded><![CDATA[<p>This week is my last week at HPE, Galway. I've been here just shy of
+8 years, worked on 3 major projects, met some fantastic people and learnt
+a lot. Here's a quick look back at those projects, and a few musings about
+each one:</p>
+<h4 id="hp-public-cloud">HP Public Cloud</h4>
+<p>This was the project I signed up for, specifically the block storage
+component. Building a production public cloud, aimed at enterprise
+customers. Certainly a bold new move for HP at the time.</p>
+<p>The amount of change I saw during this project and the transformations
+within the individual teams was tremendous. During the interview, I heard
+all about the plan to launch a public cloud based on HP Labs-developed
+proprietary technologies that were in their final production hardening
+phase. Within my first or second week in the office, our new VP had
+decided to pivot to the then-very-new <a href="https://www.openstack.org">OpenStack</a>
+technology stack and stand up a prototype in a very short period of
+time. When we had a working demo something in the order of six weeks
+later, I was extremely proud of what we'd accomplished - most of the
+OpenStack code base was, at that point fragile, suffering major
+scalability and reliability issues, and missing many basic features, but
+we'd gotten it stood up.</p>
+<p>In order to get a production-ready cloud in a reasonable timescale, the
+decision was made at some point shortly after this to effectively create
+an in-house fork of chunks of the OpenStack code base, especially Nova.
+There were good arguments for doing this - working upstream was slow, we
+weren't well integrated into the community and our priority for getting
+a working production cloud 'right now' was not well aligned with an
+upstream core who were mostly not actually trying to run the code. On the
+other hand, this created bad feeling in the community, meant that many of
+our internal changes (including customer-facing API changes) were not
+suitable for upstream inclusion in the form we deployed them, and reduced
+the amount of testing and steering we were doing on the new upstream code
+to a minimal level. Getting back to running upstream code was painful and
+time-consuming. I'm not sure what the right call was here, and hindsight
+always makes things seem obvious, but certainly it was an interesting - if
+frustrating - thing to see play out.</p>
+<p>I was lucky to be at the San Francisco summit and part of the decision to
+form Cinder. Rackspace's Lunr project, which was touted as the future of
+OpenStack block storage, was delayed again. A bunch of us were stuck
+waiting for it; we had no code, no design documentation and rapidly
+diminishing faith in its timely delivery. John Griffith, then of Solidfire
+storage,  proposed we do it ourselves, and Cinder was born.</p>
+<p>I worked on Cinder as a core developer basically full time for about
+5 years - splitting my time between a proprietary backend called 'Bock'
+that we were using in HP, and the core code. Initially, I was the only
+person on the core team actually running a production instance of cinder,
+which gave me a different set of priorities to most of the core team, who
+were vendors trying to develop new features. I think this tension was
+a very healthy thing to have in the team; we make lots of jokes about some
+of the arguments that happened over the years, and I like to think my soft
+skills matured a great deal in this period, but ultimately we got on well
+as a team, produced mostly good code and tended to learn from our
+mistakes... except on the subject of replication. Nobody should mention
+replication, to the point where we ended up referring to the third attempt
+to get that code right as Cheesecake in order to get around the almost
+Pavlovian reaction some of us had to the word by that point... but hey,
+you can't win them all.</p>
+<p>Ultimately, the HP public cloud was not a commercial success. I think
+there were a bunch of drivers for this:</p>
+<ul>
+<li>
+<p>Going head to head with a massively entrenched partner like AWS takes
+more investment that HP were prepared for.</p>
+</li>
+<li>
+<p>HP sales team were not set up to effectively sell a cloud offering. The
+incentives for the sales teams were not there, and the ability to sell
+what we had rather than what we hoped to have in future (&quot;Selling what
+we have on the truck&quot; as some senior manager put it) was not developed</p>
+</li>
+<li>
+<p>Ultimately, OpenStack was a little too immature to build a public cloud
+out of, and most of our teams never really got slick and smooth with
+supporting a 24/7 production product. Technical debt, disputes about
+ownership and responsibilities between teams, and the difficulties of
+transitioning to an effective DevOps style of working all factored in
+here</p>
+</li>
+</ul>
+<p>While it didn't work out in the end, I think we achieved a lot, learnt
+a great deal, improved our ability to work with an open-source community
+and had some fun along the way.</p>
+<h4 id="helion-life-cycle-manager">Helion Life-cycle Manager</h4>
+<p>This was a pivot back towards what HPE knows better: On-premise enterprise
+software. We initially attempted to base the product around the very new
+Triple-O (OpenStack On OpenStack) upstream code; the immaturity of
+this project together with some fundamental technical disagreements
+between that project's core team and our architects led to us using
+a different approach for HLM v2. Version 1 was very much an alpha product,
+not suitable for more than tire kicking and getting feedback. Version
+2 was a beta demo and provided a useful platform for customers to evaluate
+our approach. By the time we got to our third major version, we had
+a solid product that was definitely suitable for doing real work on.</p>
+<p>Sadly, greater corporate tides worked against us. HP had already split
+into HP and HPE, and then when the Microfocus spin-merge happened, HLM
+went to Microfocus. We finished release 4, which was definitely a product
+I'm happy to stand behind. We had big plans for future improvements, we
+had happy customers and a steadily growing customer base, with some bit
+deals starting to come in when most of the team were moved off the product
+with all new development happening at Microfocus instead. This obviously
+took the wind out of the sails of the product going forward and I don't
+think it has or ever will recover.</p>
+<h4 id="onesphere">OneSphere</h4>
+<p>Cloud was clearly still a vital market for HPE, and there was a period of
+soul searching and experimentation before yet another attempt to bring
+a product into that space. OneSphere is a SaaS-based product to do
+vending, metering and compliance across public and private clouds. It has
+undergone several pivots and refocusing over the couple of years I've been
+working on it, and while I think there's the core of a solid idea in
+there, I've never really found a niche within it that suites me. I worked
+on a few storage options initially, and ended up in the operations team.
+Turning that into a more SRE (Site Reliability Engineer, a Google
+vernacular for a combination of operations automation, monitoring and
+metrics, and DevOps push-down / good practice evangelising) role would
+have been my continued goal had I decided to stay, but I instead decided
+that it was time for me to more my career on.</p>
+<h4 id="onwards-and-upwards">Onwards and Upwards</h4>
+<p>After a fair amount of hunting round, I'm off to join
+<a href="https://www.groupon.ie/">Groupon</a> in their infrastructure team. I'll be
+working on migrating live production workloads onto Kubernetes, which
+should bring some new and interesting challenges. I wish all my former
+colleagues well and look forward to staying in touch and hearing how
+things go. Finding somewhere to rent in Dublin appears to be a herculean
+task, but that's my next short term challenge.</p>
+]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/leavinghpe/</guid>
+      <pubDate>Tue, 19 Mar 2019 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Mutation Testing Tests Your Tests</title>
+      <link>https://funcan.github.io/posts/unit-tests-2-mutation/</link>
+      <description>Quis custodiet ipsos custodes? Quis probationes probat?</description>
+      <content:encoded><![CDATA[<p>How can you measure if your unit tests are any good? Are there any good metrics for unit tests? Code coverage is certainly necessary, but it is unfortunately not sufficient. It's quite possible to execute every line of code via a unit test (an exercise not entirely without value, especially with a highly dynamic language such as python where the compiler can't catch as many undefined references and similar issue as in C or Golang), but not actually be testing any of its behaviour, let alone all.</p>
+<p>I admit to having, for a long time, somebody who considered unit tests to be low value. I've since been slowly educated on this front, and I now believe good unit tests have high value. I'm still zeroing in on a comprehensive definition of 'good' (see my last post for some initial thoughts) but one thing I've felt that should exist as a tool turns out to have existed for ages once you know the name of it: <a href="https://en.wikipedia.org/wiki/Mutation_testing">mutation testing</a>.</p>
+<h4 id="what-is-mutation-testing">What is Mutation Testing?</h4>
+<p>The concept is simple: Take your code and your tests, make random syntactically valid changes to the code, and run the tests - if no test fails then there is some part of the code's behaviour that isn't covered by the tests. Tools are available to automate this process - I've been experimenting with <a href="https://github.com/zimmski/go-mutesting">go-mutesting</a> for golang, and <a href="https://github.com/boxed/mutmut">mutmut</a> for python. Both are basic but work.</p>
+<p>There's also a giant list of other mutation testing tools and libraries <a href="https://github.com/theofidry/awesome-mutation-testing">here</a> covering most languages.</p>
+<h4 id="an-example-of-what-it-catches">An example of what it catches</h4>
+<p>Given the source code mycode.py:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">something</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;key1&#34;</span><span class="p">:</span> <span class="s2">&#34;key1&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;key2&#34;</span><span class="p">:</span> <span class="s2">&#34;key2&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;key3&#34;</span><span class="p">:</span> <span class="s2">&#34;key3&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre><p>And given the test:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">unittest</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">mycode</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SomethingTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testSomethingKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">thing</span> <span class="o">=</span> <span class="n">mycode</span><span class="o">.</span><span class="n">something</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&#34;key1&#34;</span><span class="p">,</span> <span class="s2">&#34;key2&#34;</span><span class="p">,</span> <span class="s2">&#34;key3&#34;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">thing</span>
+</span></span></code></pre><p>mutmut gives us a status line of <code>⠙ 6/6  🎉 3  ⏰ 0  🤔 0  🙁 </code>&quot;</p>
+<p>This means that 6 mutations were attempted, 3 were caught and 3 were missed.  This is more clearly spelt out from the output of <code>mutmut results</code>:</p>
+<pre><code>$ mutmut results
+To apply a mutant on disk:
+    mutmut apply &lt;id&gt;
+
+To show a mutant:
+    mutmut show &lt;id&gt;
+
+
+Survived 🙁 (3)
+
+---- mycode.py (3) ----
+
+2, 4, 6
+</code></pre>
+<p>We can view each of the failing mutations via <code>mutmut show</code>:</p>
+<pre class="chroma"><code><span class="line"><span class="cl">$ mutmut show 2
+</span></span><span class="line"><span class="cl"><span class="gd">--- mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gi">+++ mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gu">@@ -1,6 +1,6 @@
+</span></span></span><span class="line"><span class="cl"> def something():
+</span></span><span class="line"><span class="cl">     return {
+</span></span><span class="line"><span class="cl"><span class="gd">-        &#34;key1&#34;: &#34;key1&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="gi">+        &#34;key1&#34;: &#34;XXkey1XX&#34;,
+</span></span></span><span class="line"><span class="cl">         &#34;key2&#34;: &#34;key2&#34;,
+</span></span><span class="line"><span class="cl">         &#34;key3&#34;: &#34;key3&#34;
+</span></span><span class="line"><span class="cl">     }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ mutmut show 4
+</span></span><span class="line"><span class="cl"><span class="gd">--- mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gi">+++ mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gu">@@ -1,7 +1,7 @@
+</span></span></span><span class="line"><span class="cl"> def something():
+</span></span><span class="line"><span class="cl">     return {
+</span></span><span class="line"><span class="cl">         &#34;key1&#34;: &#34;key1&#34;,
+</span></span><span class="line"><span class="cl"><span class="gd">-        &#34;key2&#34;: &#34;key2&#34;,
+</span></span></span><span class="line"><span class="cl"><span class="gi">+        &#34;key2&#34;: &#34;XXkey2XX&#34;,
+</span></span></span><span class="line"><span class="cl">         &#34;key3&#34;: &#34;key3&#34;
+</span></span><span class="line"><span class="cl">     }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ mutmut show 6
+</span></span><span class="line"><span class="cl"><span class="gd">--- mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gi">+++ mycode.py
+</span></span></span><span class="line"><span class="cl"><span class="gu">@@ -2,6 +2,6 @@
+</span></span></span><span class="line"><span class="cl">     return {
+</span></span><span class="line"><span class="cl">         &#34;key1&#34;: &#34;key1&#34;,
+</span></span><span class="line"><span class="cl">         &#34;key2&#34;: &#34;key2&#34;,
+</span></span><span class="line"><span class="cl"><span class="gd">-        &#34;key3&#34;: &#34;key3&#34;
+</span></span></span><span class="line"><span class="cl"><span class="gi">+        &#34;key3&#34;: &#34;XXkey3XX&#34;
+</span></span></span><span class="line"><span class="cl">     }
+</span></span></code></pre><p>This highlights the fact that none of our return dictionary values are validated by our tests.</p>
+<p>Obviously this is a trivial example, and there are mutmut issue tickets open to provide better control of the mutations that are applied; I found when applying this to a large project for the first time it is easy to get swamped, so testing the most important things first (return values, logcical tests) and skipping things like mutation of constants would make it easier to know where to start.</p>
+<p>This is only a flying introduction, but I found that the use of this tool found real bugs in my code that were missed by the tests, within a few minutes. I'd encourage any developer to look into it and add it to the set of tools at their disposal. I am doing some experimentation into how to add mutation testing to CI in a useful way, and I'll make another post about that in future.</p>
+]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/unit-tests-2-mutation/</guid>
+      <pubDate>Fri, 08 Mar 2019 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Unit Testing Considered Difficult</title>
+      <link>https://funcan.github.io/posts/unit-tests-1/</link>
+      <description>Unit tests are more useful than I used to think, but only if you do them right</description>
+      <content:encoded><![CDATA[<p>During most of my time as an OpenStack Cinder core team member, I had a
+constant nagging feeling that we were doing a bad job with unit testing. I
+could never point to one specific thing that was definitely wrong, but it
+never felt that we were doing a good job. They always felt like a rock-fetch,
+something we were adding because the 'Big Book of Software Development' said they
+were a good thing, rather than something we had a clear vision of what were
+doing and how we were going to do a good job of it.</p>
+<p>Turning my vague feelings into workable actions has taken a while, and I'm far
+from having answers for all of the questions, but I definitely consider myself
+better educated about enabling unit tests to provide value. We had a lot of
+unit tests, reasonably good coverage and fast enough runtime, so what would I
+change?</p>
+<p>We had a fair number of unit tests that had a style something like:</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">frobulate</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">status</span> <span class="o">=</span> <span class="s2">&#34;Bad&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">cost</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&#34; fobulated&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="s2">&#34;frozen&#34;</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">status</span> <span class="o">=</span> <span class="s2">&#34;Good&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;name&#34;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;layer&#34;</span><span class="p">:</span> <span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;status&#34;</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre><pre class="chroma"><code><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FrobulateTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">test_frobulate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;frozen&#34;</span><span class="p">,</span> <span class="s2">&#34;pie&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Fred fobulated&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Good&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;layer&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;frozen&#34;</span><span class="p">,</span> <span class="s2">&#34;pie&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Bad&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">])</span>
+</span></span></code></pre><p>So we're getting full coverage, including all of the branches, so our metrics
+look good. I don't thing this is a useful test at all though.</p>
+<h4 id="whats-wrong-with-this">What's wrong with this?</h4>
+<ol>
+<li>Each unit test should express one, and ideally only one, intent of the code</li>
+</ol>
+<p>Reading this test, I've no idea what the frobulate function does. I need to go
+and read all of the code to answer that.</p>
+<ol start="2">
+<li>The test doesn't tell me what the corner cases are</li>
+</ol>
+<p>We've a magic value of 4 in the code but no explicit testing around that value.</p>
+<ol start="3">
+<li>The test provides little to no protection during refactoring
+If the code has to change (either through refactoring, minor requirements
+change or functional enhancements) then the test has to change which means
+that it doesn't do a good job of telling me whether I've broken anything.</li>
+</ol>
+<p>With those points in mind, what would a better unit test look like?</p>
+<pre class="chroma"><code><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FrobulateTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFrobulateDictFields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">keys</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s2">&#34;status&#34;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s2">&#34;name&#34;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s2">&#34;layer&#34;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFrobulate4LayersUnfrobulated</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Name should be unfrobulated for &lt;= 4 layers</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFroblulate5LayerFrobulated</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Name should be frobulated for 5+ layers</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;air&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Debug: </span><span class="si">%s</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="s2">&#34;name&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&#34;fobulated&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFroblulateFrozenGood</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;water&#34;</span><span class="p">,</span> <span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;frozen&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">],</span> <span class="s2">&#34;Good&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">testFrobulateNoFrozenBad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ret</span> <span class="o">=</span> <span class="n">frobulate</span><span class="p">(</span><span class="s2">&#34;Fred&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;water&#34;</span><span class="p">,</span> <span class="s2">&#34;air&#34;</span><span class="p">,</span> <span class="s2">&#34;melted&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">],</span> <span class="s2">&#34;Bad&#34;</span><span class="p">)</span>
+</span></span></code></pre><p>We've once again got 100% coverage, but now if we change the behaviour of the
+frobulate function, it is highly likely that several of these tests won't have
+to change, which gives a higher confidence that we haven't broken things.</p>
+<p>I'm quite sure that the above tests could be improved more, and the cinder
+tests are in a better state than I remember them being. I hope to get time to
+submit a few patches to make them better still, especially once I've had more
+chance to play with my most recent discovery in the field of unit testing,
+which is mutation testing, the subject of a blog post in the near future.</p>
+]]></content:encoded>
+      <author>duncan.thomas@gmail.com (Duncan Thomas)</author>
+      <guid>https://funcan.github.io/posts/unit-tests-1/</guid>
+      <pubDate>Wed, 06 Mar 2019 00:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>
