@@ -22,8 +22,8 @@
 </p>
 
 <img class="hero" src="/posts/unit-tests-2-mutation/biohazard-r480x0.png" width="480" height="280" alt="">
-<div class="post-body"><p>How can you measure if your unit tests are any good? Are there any good metrics for unit tests? Code coverage is certainly necessary, but it is unfortunately not sufficient. It's quite possible to execute every line of code via a unit test (an exercise not entirely without value, especially with a highly dynamic language such as python where the compiler can't catch as many undefined references and similar issue as in C or Golang), but not actually be testing any of its behaviour, let alone all.</p>
-<p>I admit to having, for a long time, somebody who considered unit tests to be low value. I've since been slowly educated on this front, and I now believe good unit tests have high value. I'm still zeroing in on a comprehensive definition of 'good' (see my last post for some initial thoughts) but one thing I've felt that should exist as a tool turns out to have existed for ages once you know the name of it: <a href="https://en.wikipedia.org/wiki/Mutation_testing">mutation testing</a>.</p>
+<div class="post-body"><p>How can you measure if your unit tests are any good? Are there any good metrics for unit tests? Code coverage is certainly necessary, but it is unfortunately not sufficient. It's quite possible to execute every line of code via a unit test (an exercise not entirely without value, especially with a highly dynamic language such as python where the compiler can't catch as many undefined references and similar issues as in C or Golang), but not actually be testing any of its behaviour, let alone all.</p>
+<p>I admit to having been, for a long time, somebody who considered unit tests to be low value. I've since been slowly educated on this front, and I now believe good unit tests have high value. I'm still zeroing in on a comprehensive definition of 'good' (see my last post for some initial thoughts) but one thing I've felt that should exist as a tool turns out to have existed for ages once you know the name of it: <a href="https://en.wikipedia.org/wiki/Mutation_testing">mutation testing</a>.</p>
 <h4 id="what-is-mutation-testing">What is Mutation Testing?</h4>
 <p>The concept is simple: Take your code and your tests, make random syntactically valid changes to the code, and run the tests - if no test fails then there is some part of the code's behaviour that isn't covered by the tests. Tools are available to automate this process - I've been experimenting with <a href="https://github.com/zimmski/go-mutesting">go-mutesting</a> for golang, and <a href="https://github.com/boxed/mutmut">mutmut</a> for python. Both are basic but work.</p>
 <p>There's also a giant list of other mutation testing tools and libraries <a href="https://github.com/theofidry/awesome-mutation-testing">here</a> covering most languages.</p>
@@ -98,7 +98,7 @@ Survived 🙁 (3)
 </span></span></span><span class="line"><span class="cl"><span class="gi">+        &#34;key3&#34;: &#34;XXkey3XX&#34;
 </span></span></span><span class="line"><span class="cl">     }
 </span></span></code></pre><p>This highlights the fact that none of our return dictionary values are validated by our tests.</p>
-<p>Obviously this is a trivial example, and there are mutmut issue tickets open to provide better control of the mutations that are applied; I found when applying this to a large project for the first time it is easy to get swamped, so testing the most important things first (return values, logcical tests) and skipping things like mutation of constants would make it easier to know where to start.</p>
+<p>Obviously this is a trivial example, and there are mutmut issue tickets open to provide better control of the mutations that are applied; I found when applying this to a large project for the first time it is easy to get swamped, so testing the most important things first (return values, logical tests) and skipping things like mutation of constants would make it easier to know where to start.</p>
 <p>This is only a flying introduction, but I found that the use of this tool found real bugs in my code that were missed by the tests, within a few minutes. I'd encourage any developer to look into it and add it to the set of tools at their disposal. I am doing some experimentation into how to add mutation testing to CI in a useful way, and I'll make another post about that in future.</p>
 </div>
 <p class="byline">By Duncan Thomas &lt;duncan.thomas@gmail.com&gt;</p>
@@ -118,7 +118,7 @@ Survived 🙁 (3)
 <footer class="site-footer">
 <nav class="recent">
 <span>Recent:</span>
-<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3xl</a>
+<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3 XL</a>
 </nav>
 </footer>
 </body>

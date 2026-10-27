@@ -30,22 +30,22 @@ somebody...</p>
 <p>Recently I was trying to debug a situation with a distributed service on K8s
 and I was becoming more and more convinced that the issue was that one of the
 nodes had a clock hours off. It turned out not to be the case, but proving that
-was painful enough that I though I'd have a go at making up something easy to
+was painful enough that I thought I'd have a go at making up something easy to
 deploy next time.</p>
-<p>Back when I build HPC compute clusters, every node ran <code>ntpd</code>, and you could
+<p>Back when I built HPC compute clusters, every node ran <code>ntpd</code>, and you could
 check the time differences between them with <code>ntpdate</code> for debugging. Running
 daemons in the background on compute clusters that did tightly coupled
 distributed computations can have some interesting performance issues [^1] but
-things like time sync are just to critical to not have. <code>ntpd</code> is old and
+things like time sync are just too critical to not have. <code>ntpd</code> is old and
 crufty code though, and not at all friendly to run in containers or a non-root
 environment - it makes assumptions about what you want.</p>
-<p>Cloud VMs generally don't to worry about time, the hypervisor takes care of it
+<p>Cloud VMs generally don't need to worry about time, the hypervisor takes care of it
 for you. The AWS EKS images don't have <code>ntpd</code> running, and as mentioned it is
 painful to run in a container. Thankfully <a href="https://chrony-project.org/">chrony</a>
 exists as a modern reimplementation of time sync, and it is happy to run in a
 container and just track offsets rather than trying to fix the system clock.
-There's even an existing commulity project that queries <code>chrony</code> pods in a
-deamonset and turns the offsets into grafana metrics -
+There's even an existing community project that queries <code>chrony</code> pods in a
+daemonset and turns the offsets into grafana metrics -
 <a href="https://github.com/SuperQ/chrony_exporter">chrony-exporter</a>.</p>
 <p>It's easy enough to deploy a daemonset running chrony on every node, then
 either run a one-shot job to collect the time offsets, or run <code>chrony-exporter</code>
@@ -108,7 +108,7 @@ load-balancer.</p>
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">1123</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l">UDP</span><span class="w">
 </span></span></span></code></pre><p>Once these two are applied, we can start querying the time differences. If we
-wnat a one-shot query, we can use a script wrapped in a kubernetes job such as:</p>
+want a one-shot query, we can use a script wrapped in a kubernetes job such as:</p>
 <pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">batch/v1</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Job</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="nt">metadata</span><span class="p">:</span><span class="w">
@@ -159,8 +159,8 @@ wnat a one-shot query, we can use a script wrapped in a kubernetes job such as:<
 </span></span></span></code></pre><p>If we want to monitor drift over time then we can install <code>chrony-exporter</code>.
 This involves adding a sidecar to our <code>chrony</code> daemonset. If you are using a
 version of k8s new enough to support native sidecar support, it's probably
-worth using that (change the <code>chroony-exporter</code> container to an <code>initContainer</code>
-with a restart-policy of <code>always</code>). The following it the new daemonset with the
+worth using that (change the <code>chrony-exporter</code> container to an <code>initContainer</code>
+with a restart-policy of <code>always</code>). The following is the new daemonset with the
 sidecar added:</p>
 <pre class="chroma"><code><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">DaemonSet</span><span class="w">
@@ -231,12 +231,12 @@ Prometheus operator setup. Something like:</p>
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">endpoints</span><span class="p">:</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="m">9123</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
-</span></span></span></code></pre><p>Some there you go. This can be improved - using a proper stripped down image
+</span></span></span></code></pre><p>So there you go. This can be improved - using a proper stripped down image
 rather than alpine, adding liveness probe to the <code>chrony</code> pods and the
-exported, wrapping the whole thing in a helm chart, etc, but it's good enough
+exporter, wrapping the whole thing in a helm chart, etc, but it's good enough
 for debugging. I may or may not get round to polishing it some more.</p>
 <p>[^1]: See for example the classic paper <a href="https://dl.acm.org/doi/10.1145/1048935.1050204">The Case of the Missing Supercomputer
-Perfomance</a> that I helped
+Performance</a> that I helped
 debug as an intern</p>
 </div>
 <p class="byline">By Duncan Thomas &lt;duncan.thomas@gmail.com&gt;</p>
@@ -256,7 +256,7 @@ debug as an intern</p>
 <footer class="site-footer">
 <nav class="recent">
 <span>Recent:</span>
-<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3xl</a>
+<a href="/posts/a-case-of-small-tools/">A case of small tools</a><a href="/posts/kubernetes-time/">What time? Kubernetes time!</a><a href="/posts/blink/">Blink is back, baby</a><a href="/posts/kubecon-europe-2019/">Kubecon Europe 2019</a><a href="/posts/1-week-on-a-pixel-3/">1 Week on a Pixel 3 XL</a>
 </nav>
 </footer>
 </body>
